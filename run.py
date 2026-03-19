@@ -10,7 +10,6 @@ Usage
 
 import argparse
 import sys
-import webbrowser
 from pathlib import Path
 
 from check_processor import process_pdf
@@ -39,11 +38,6 @@ def parse_args() -> argparse.Namespace:
         metavar="N",
         help="Resolution for rendering PDF pages (default: 200)",
     )
-    parser.add_argument(
-        "--open",
-        action="store_true",
-        help="Open the report in the default browser when done",
-    )
     return parser.parse_args()
 
 
@@ -67,9 +61,6 @@ def main() -> None:
 
     print(f"\nDone!  {detected} check(s) processed.")
     print(f"  Report -> {out.resolve()}")
-
-    if args.open:
-        webbrowser.open(out.resolve().as_uri())
 
 
 if __name__ == "__main__":
