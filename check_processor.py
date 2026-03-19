@@ -199,10 +199,18 @@ def process_pdf(pdf_path: str | Path, dpi: int = 300) -> list[CheckData]:
 
     print(f"Processing {len(doc)} page(s) from '{pdf_path.name}'...")
 
+    debug_dir = pdf_path.parent / "debug_pages"
+    debug_dir.mkdir(exist_ok=True)
+    print(f"  (debug images → {debug_dir})")
+
     for i, page in enumerate(doc):
         page_num = i + 1
         print(f"  Page {page_num}/{len(doc)}: rendering and analyzing...", end=" ")
-        image_b64 = _page_to_base64(page, dpi=dpi)
+        mat = fitz.Matrix(dpi / 72, dpi / 72)
+        pix = page.get_pixmap(matrix=mat)
+        debug_img = debug_dir / f"page_{page_num:03d}.png"
+        pix.save(str(debug_img))
+        image_b64 = base64.standard_b64encode(pix.tobytes("png")).decode("utf-8")
         check = _extract_from_image(client, image_b64, page_num)
         results.append(check)
 
