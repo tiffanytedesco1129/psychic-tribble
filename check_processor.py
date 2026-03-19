@@ -220,13 +220,15 @@ def process_pdf(pdf_path: str | Path, dpi: int = 300) -> list[CheckData]:
 
     client = anthropic.Anthropic()
     doc = fitz.open(str(pdf_path))
+    page_count = len(doc)
     results: list[CheckData] = []
 
-    print(f"Processing {len(doc)} page(s) from '{pdf_path.name}'...")
+    print(f"Processing {page_count} page(s) from '{pdf_path.name}'...")
 
-    for i, page in enumerate(doc):
+    for i in range(page_count):
         page_num = i + 1
-        print(f"  Page {page_num}/{len(doc)}: rendering and analyzing...", end=" ")
+        print(f"  Page {page_num}/{page_count}: rendering and analyzing...", end=" ")
+        page = doc.load_page(i)
         mat = fitz.Matrix(dpi / 72, dpi / 72)
         pix = page.get_pixmap(matrix=mat)
         image_b64 = base64.standard_b64encode(pix.tobytes("png")).decode("utf-8")
@@ -243,5 +245,5 @@ def process_pdf(pdf_path: str | Path, dpi: int = 300) -> list[CheckData]:
 
     doc.close()
 
-    print(f"\nDone. Detected {len(results)} check(s) across {len(doc)} page(s).")
+    print(f"\nDone. Detected {len(results)} check(s) across {page_count} page(s).")
     return results
