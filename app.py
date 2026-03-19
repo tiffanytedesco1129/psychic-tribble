@@ -108,7 +108,7 @@ class App(tk.Tk):
         frame_opts.pack(fill="x", padx=12, pady=2)
 
         ttk.Label(frame_opts, text="Render DPI:").pack(side="left")
-        self._dpi_var = tk.StringVar(value="200")
+        self._dpi_var = tk.StringVar(value="300")
         dpi_spin = ttk.Spinbox(
             frame_opts, from_=72, to=600, increment=50,
             textvariable=self._dpi_var, width=6,

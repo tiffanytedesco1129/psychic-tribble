@@ -53,39 +53,51 @@ class CheckData:
 
 # ── Internal helpers ─────────────────────────────────────────────────────────
 
-_EXTRACTION_PROMPT = """Examine this scanned check image carefully and extract every visible field.
+_EXTRACTION_PROMPT = """You are extracting data from a scanned page that contains one or more donation checks.
+These are real paper checks that have been scanned — they may appear at an angle, have low contrast,
+or be partially cut off. Do your best to read every field even if the scan quality is poor.
 
-Return a single JSON object with exactly these keys (no markdown fencing):
+Look carefully for:
+- The PAY TO THE ORDER OF line (donor name / payer)
+- The dollar amount (numeric box and written-out amount)
+- The date field (top-right area of the check)
+- The memo/for line (bottom-left)
+- The check number (top-right corner)
+- The address printed on the check (upper-left area)
+- Bank name and routing/account numbers at the bottom (MICR line)
+
+Return a single JSON object with exactly these keys (no markdown fencing, no extra text):
 {
-  "donor_name":          "<full name or organization on the check>",
-  "donor_address":       "<full mailing address if visible, else empty string>",
+  "donor_name":          "<full name or organization printed on the check — the account holder/payer>",
+  "donor_address":       "<full mailing address printed on the check if visible, else empty string>",
   "amount":              0.00,
   "amount_str":          "<amount as written, e.g. '$1,250.00'>",
   "date":                "<date as written on the check>",
-  "memo":                "<memo line text, or empty string>",
+  "memo":                "<memo/for line text, or empty string>",
   "check_number":        "<check number if visible, else empty string>",
   "donor_type":          "<one of: individual | daf | corporate | foundation>",
   "has_attached_letter": false,
-  "notes":               "<any other important observations>"
+  "notes":               "<any other important observations, or difficulties reading the check>"
 }
 
 donor_type rules
 ----------------
 • "daf"         — check is from a donor-advised fund (Fidelity Charitable,
-                  Schwab Charitable, Vanguard Charitable, NPT, etc.)
+                  Schwab Charitable, Vanguard Charitable, NPT, BNY Mellon, etc.)
 • "foundation"  — check is from a private or family foundation
 • "corporate"   — check is from a company, LLC, Inc., Corp., business, etc.
-• "individual"  — personal check (default)
+• "individual"  — personal check (default when none of the above apply)
 
 has_attached_letter
 -------------------
 Set to true only when a cover letter, sticky note, or separate explanatory
-page is clearly visible alongside this check.
+page is clearly visible alongside or attached to the check.
 
-If the page contains no check at all, return all string fields as "" and
-numeric/boolean fields as 0 / false.
+IMPORTANT: Even if the scan is blurry or partial, extract whatever you can.
+Only return all empty/zero fields if you are certain the page contains NO check at all
+(e.g. it is a blank page or contains only a cover letter with no check).
 
-Return only valid JSON — no prose, no markdown."""
+Return only valid JSON — no prose, no markdown, no code fences."""
 
 
 def _page_to_base64(page: fitz.Page, dpi: int = 200) -> str:
@@ -137,6 +149,11 @@ def _extract_from_image(
     raw = next((b.text for b in response.content if b.type == "text"), "{}")
     data = _parse_json_response(raw)
 
+    if not data.get("donor_name"):
+        # Show a snippet of what Claude returned to help with debugging
+        snippet = raw[:300].replace("\n", " ") if raw else "(empty response)"
+        print(f"\n    [debug] Claude raw response: {snippet}")
+
     return CheckData(
         page_number=page_num,
         donor_name=data.get("donor_name", ""),
@@ -154,7 +171,7 @@ def _extract_from_image(
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-def process_pdf(pdf_path: str | Path, dpi: int = 200) -> list[CheckData]:
+def process_pdf(pdf_path: str | Path, dpi: int = 300) -> list[CheckData]:
     """
     Convert every page of a scanned check PDF to an image and extract
     check data from each page using Claude's vision AI.
