@@ -194,32 +194,33 @@ def process_pdf(pdf_path: str | Path, dpi: int = 300) -> list[CheckData]:
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
     client = anthropic.Anthropic()
-    doc = fitz.open(str(pdf_path))
     results: list[CheckData] = []
 
-    print(f"Processing {len(doc)} page(s) from '{pdf_path.name}'...")
+    with fitz.open(str(pdf_path)) as doc:
+        print(f"Processing {len(doc)} page(s) from '{pdf_path.name}'...")
 
-    debug_dir = pdf_path.parent / "debug_pages"
-    debug_dir.mkdir(exist_ok=True)
-    print(f"  (debug images → {debug_dir})")
+        debug_dir = pdf_path.parent / "debug_pages"
+        debug_dir.mkdir(exist_ok=True)
+        print(f"  (debug images → {debug_dir})")
 
-    for i, page in enumerate(doc):
-        page_num = i + 1
-        print(f"  Page {page_num}/{len(doc)}: rendering and analyzing...", end=" ")
-        mat = fitz.Matrix(dpi / 72, dpi / 72)
-        pix = page.get_pixmap(matrix=mat)
-        debug_img = debug_dir / f"page_{page_num:03d}.png"
-        pix.save(str(debug_img))
-        image_b64 = base64.standard_b64encode(pix.tobytes("png")).decode("utf-8")
-        check = _extract_from_image(client, image_b64, page_num)
-        results.append(check)
+        page_count = len(doc)
+        for i in range(page_count):
+            page_num = i + 1
+            print(f"  Page {page_num}/{page_count}: rendering and analyzing...", end=" ")
+            page = doc[i]
+            mat = fitz.Matrix(dpi / 72, dpi / 72)
+            pix = page.get_pixmap(matrix=mat)
+            debug_img = debug_dir / f"page_{page_num:03d}.png"
+            pix.save(str(debug_img))
+            image_b64 = base64.standard_b64encode(pix.tobytes("png")).decode("utf-8")
+            del page  # release page reference before moving on
+            check = _extract_from_image(client, image_b64, page_num)
+            results.append(check)
 
-        if check.donor_name:
-            print(f"{check.donor_name} | {check.amount_str} | {check.donor_type}")
-        else:
-            print("(no check detected)")
-
-    doc.close()
+            if check.donor_name:
+                print(f"{check.donor_name} | {check.amount_str} | {check.donor_type}")
+            else:
+                print("(no check detected)")
 
     detected = sum(1 for c in results if c.donor_name)
     print(f"\nDone. Detected {detected} check(s) across {len(results)} page(s).")
