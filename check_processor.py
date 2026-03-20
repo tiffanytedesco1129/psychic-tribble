@@ -110,7 +110,10 @@ def _page_to_base64(page: fitz.Page, dpi: int = 200) -> str:
 def _parse_json_response(raw: str) -> dict:
     """Extract a JSON object from Claude's response, tolerating minor formatting."""
     try:
-        return json.loads(raw)
+        result = json.loads(raw)
+        if isinstance(result, list):
+            return result[0] if result else {}
+        return result
     except json.JSONDecodeError:
         match = re.search(r'\{.*\}', raw, re.DOTALL)
         if match:
