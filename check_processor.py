@@ -66,7 +66,11 @@ Look carefully for:
 - The address printed on the check (upper-left area)
 - Bank name and routing/account numbers at the bottom (MICR line)
 
-Return a single JSON object with exactly these keys (no markdown fencing, no extra text):
+Return a JSON array — one object per check found on the page. If the page contains
+multiple checks, return multiple objects. If the page has no check at all (blank page,
+cover letter only, etc.) return an empty array [].
+
+Each object must have exactly these keys (no markdown fencing, no extra text):
 {
   "donor_name":          "<full name or organization printed on the check — the account holder/payer>",
   "donor_address":       "<full mailing address printed on the check if visible, else empty string>",
@@ -94,10 +98,9 @@ Set to true only when a cover letter, sticky note, or separate explanatory
 page is clearly visible alongside or attached to the check.
 
 IMPORTANT: Even if the scan is blurry or partial, extract whatever you can.
-Only return all empty/zero fields if you are certain the page contains NO check at all
-(e.g. it is a blank page or contains only a cover letter with no check).
+Only return an empty array if you are certain the page contains NO check at all.
 
-Return only valid JSON — no prose, no markdown, no code fences."""
+Return only a valid JSON array — no prose, no markdown, no code fences."""
 
 
 def _page_to_base64(page: fitz.Page, dpi: int = 200) -> str:
@@ -107,32 +110,42 @@ def _page_to_base64(page: fitz.Page, dpi: int = 200) -> str:
     return base64.standard_b64encode(pix.tobytes("png")).decode("utf-8")
 
 
-def _parse_json_response(raw: str) -> dict:
-    """Extract a JSON object from Claude's response, tolerating minor formatting."""
+def _parse_json_response(raw: str) -> list[dict]:
+    """Extract a JSON array of check objects from Claude's response."""
     try:
         result = json.loads(raw)
         if isinstance(result, list):
-            return result[0] if result else {}
-        return result
+            return result
+        if isinstance(result, dict):
+            return [result]
     except json.JSONDecodeError:
+        # Try to find an array first, then fall back to a single object
+        match = re.search(r'\[.*\]', raw, re.DOTALL)
+        if match:
+            try:
+                result = json.loads(match.group())
+                if isinstance(result, list):
+                    return result
+            except json.JSONDecodeError:
+                pass
         match = re.search(r'\{.*\}', raw, re.DOTALL)
         if match:
             try:
-                return json.loads(match.group())
+                return [json.loads(match.group())]
             except json.JSONDecodeError:
                 pass
-    return {}
+    return []
 
 
 def _extract_from_image(
     client: anthropic.Anthropic,
     image_b64: str,
     page_num: int,
-) -> CheckData:
-    """Send one page image to Claude Vision and return a populated CheckData."""
+) -> list[CheckData]:
+    """Send one page image to Claude Vision and return all checks found on the page."""
     response = client.messages.create(
         model="claude-opus-4-6",
-        max_tokens=1024,
+        max_tokens=2048,
         messages=[{
             "role": "user",
             "content": [
@@ -149,27 +162,32 @@ def _extract_from_image(
         }],
     )
 
-    raw = next((b.text for b in response.content if b.type == "text"), "{}")
-    data = _parse_json_response(raw)
+    raw = next((b.text for b in response.content if b.type == "text"), "[]")
+    items = _parse_json_response(raw)
 
-    if not data.get("donor_name"):
-        # Show a snippet of what Claude returned to help with debugging
+    if not items:
         snippet = raw[:300].replace("\n", " ") if raw else "(empty response)"
         print(f"\n    [debug] Claude raw response: {snippet}")
+        return []
 
-    return CheckData(
-        page_number=page_num,
-        donor_name=data.get("donor_name", ""),
-        donor_address=data.get("donor_address", ""),
-        amount=float(data.get("amount") or 0.0),
-        amount_str=data.get("amount_str", ""),
-        date=data.get("date", ""),
-        memo=data.get("memo", ""),
-        check_number=data.get("check_number", ""),
-        donor_type=data.get("donor_type", "individual"),
-        has_attached_letter=bool(data.get("has_attached_letter", False)),
-        notes=data.get("notes", ""),
-    )
+    checks = []
+    for data in items:
+        if not isinstance(data, dict) or not data.get("donor_name"):
+            continue
+        checks.append(CheckData(
+            page_number=page_num,
+            donor_name=data.get("donor_name", ""),
+            donor_address=data.get("donor_address", ""),
+            amount=float(data.get("amount") or 0.0),
+            amount_str=data.get("amount_str", ""),
+            date=data.get("date", ""),
+            memo=data.get("memo", ""),
+            check_number=data.get("check_number", ""),
+            donor_type=data.get("donor_type", "individual"),
+            has_attached_letter=bool(data.get("has_attached_letter", False)),
+            notes=data.get("notes", ""),
+        ))
+    return checks
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -217,14 +235,15 @@ def process_pdf(pdf_path: str | Path, dpi: int = 300) -> list[CheckData]:
             pix.save(str(debug_img))
             image_b64 = base64.standard_b64encode(pix.tobytes("png")).decode("utf-8")
             del page  # release page reference before moving on
-            check = _extract_from_image(client, image_b64, page_num)
-            results.append(check)
+            checks = _extract_from_image(client, image_b64, page_num)
+            results.extend(checks)
 
-            if check.donor_name:
-                print(f"{check.donor_name} | {check.amount_str} | {check.donor_type}")
+            if checks:
+                for c in checks:
+                    print(f"\n      {c.donor_name} | {c.amount_str} | {c.donor_type}", end=" ")
+                print()
             else:
                 print("(no check detected)")
 
-    detected = sum(1 for c in results if c.donor_name)
-    print(f"\nDone. Detected {detected} check(s) across {len(results)} page(s).")
+    print(f"\nDone. Detected {len(results)} check(s) across {page_count} page(s).")
     return results
