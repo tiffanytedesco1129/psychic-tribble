@@ -13,3 +13,9 @@ env/
 # Exported output files
 contacts.csv
 contacts.vcf
+
+# SQLite database (generated at runtime)
+*.db
+*.sqlite
+*.sqlite3
+instance/
