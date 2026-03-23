@@ -710,6 +710,21 @@ def export_companies():
 
 
 # ---------------------------------------------------------------------------
+# Clear all data
+# ---------------------------------------------------------------------------
+
+
+@app.route("/clear-data", methods=["POST"])
+def clear_data():
+    OutreachLog.query.delete()
+    Contact.query.delete()
+    Company.query.delete()
+    db.session.commit()
+    flash("All data has been cleared.", "success")
+    return redirect(url_for("index"))
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
