@@ -38,6 +38,12 @@
           <a class="nav-link {% if request.endpoint == 'upload' or request.endpoint == 'column_map' %}active{% endif %}"
              href="{{ url_for('upload') }}"><i class="bi bi-upload me-1"></i>Upload Data</a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'discover' or request.endpoint == 'discover_search' %}active{% endif %}"
+             href="{{ url_for('discover') }}">
+            <i class="bi bi-binoculars me-1"></i>Discover
+          </a>
+        </li>
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
             <i class="bi bi-funnel me-1"></i>Targets

@@ -35,13 +35,166 @@
       <i class="bi bi-lightbulb me-1"></i><em>{{ company.why_target }}</em>
     </p>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#pitchModal">
+      <i class="bi bi-envelope-paper me-1"></i>Generate Pitch
+    </button>
+    <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#contactsModal">
+      <i class="bi bi-search me-1"></i>Find Contacts
+    </button>
     <a href="{{ url_for('edit_company', company_id=company.id) }}" class="btn btn-outline-secondary btn-sm">
       <i class="bi bi-pencil me-1"></i>Edit
     </a>
     <a href="{{ url_for('companies') }}" class="btn btn-outline-secondary btn-sm">
       <i class="bi bi-arrow-left me-1"></i>Back
     </a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL: Generate Pitch Email
+═══════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="pitchModal" tabindex="-1" aria-labelledby="pitchModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="pitchModalLabel">
+          <i class="bi bi-envelope-paper me-2"></i>AI Sponsorship Pitch — {{ company.name }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="pitchBody">
+        <div class="text-center py-5" id="pitchLoading">
+          <div class="spinner-border text-primary mb-3" role="status"></div>
+          <p class="text-muted">Generating personalised pitch…</p>
+        </div>
+        <div id="pitchContent" style="display:none">
+
+          <!-- Program & Amount recommendation -->
+          <div class="alert alert-primary d-flex align-items-start gap-3 mb-4" id="pitchRecommendation">
+            <i class="bi bi-star-fill fs-4 flex-shrink-0 mt-1"></i>
+            <div>
+              <div class="fw-bold mb-1" id="pitchProgramName"></div>
+              <div class="small" id="pitchAmount"></div>
+              <div class="small text-muted mt-1" id="pitchReasoning"></div>
+            </div>
+          </div>
+
+          <!-- Tips -->
+          <div class="card border-0 bg-light mb-4" id="pitchTipsCard">
+            <div class="card-body py-2 px-3">
+              <p class="small fw-semibold mb-1"><i class="bi bi-lightbulb text-warning me-1"></i>Outreach Tips</p>
+              <ul class="small mb-0" id="pitchTips"></ul>
+            </div>
+          </div>
+
+          <!-- Email draft -->
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+              <span class="fw-semibold"><i class="bi bi-envelope me-1 text-primary"></i>Draft Email</span>
+              <button class="btn btn-outline-secondary btn-sm" id="copyEmailBtn">
+                <i class="bi bi-clipboard me-1"></i>Copy
+              </button>
+            </div>
+            <div class="card-body">
+              <div class="mb-2">
+                <label class="form-label form-label-sm fw-semibold text-muted">Subject</label>
+                <div class="border rounded p-2 small bg-light" id="pitchSubject"></div>
+              </div>
+              <div>
+                <label class="form-label form-label-sm fw-semibold text-muted">Body</label>
+                <textarea class="form-control small" id="pitchEmailBody" rows="14" style="font-family:inherit"></textarea>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div id="pitchError" class="alert alert-danger" style="display:none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" id="regenPitchBtn">
+          <i class="bi bi-arrow-clockwise me-1"></i>Regenerate
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODAL: Find Contacts Online
+═══════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="contactsModal" tabindex="-1" aria-labelledby="contactsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-dark">
+        <h5 class="modal-title" id="contactsModalLabel">
+          <i class="bi bi-search me-2"></i>Find Contacts — {{ company.name }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center py-5" id="contactsLoading">
+          <div class="spinner-border text-info mb-3" role="status"></div>
+          <p class="text-muted">Researching contact strategies…</p>
+        </div>
+        <div id="contactsContent" style="display:none">
+
+          <div class="alert alert-info mb-3" id="contactGuessBox">
+            <i class="bi bi-person-badge me-2"></i><span id="contactGuess"></span>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold small">
+                  <i class="bi bi-briefcase me-1 text-primary"></i>Target Job Titles
+                </div>
+                <div class="card-body p-0">
+                  <ol class="list-group list-group-flush list-group-numbered" id="targetTitles"></ol>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold small">
+                  <i class="bi bi-linkedin me-1 text-primary"></i>LinkedIn Search Strings
+                  <span class="text-muted fw-normal">(copy &amp; paste)</span>
+                </div>
+                <div class="card-body p-0">
+                  <ul class="list-group list-group-flush" id="linkedinSearches"></ul>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold small">
+                  <i class="bi bi-globe me-1 text-success"></i>Website Pages to Check
+                </div>
+                <div class="card-body p-0">
+                  <ul class="list-group list-group-flush" id="websitePages"></ul>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold small">
+                  <i class="bi bi-lightbulb me-1 text-warning"></i>Research Tips
+                </div>
+                <div class="card-body p-0">
+                  <ul class="list-group list-group-flush" id="researchTips"></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div id="contactsError" class="alert alert-danger mt-3" style="display:none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -364,4 +517,121 @@
 
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PITCH_URL = "{{ url_for('ai_pitch', company_id=company.id) }}";
+const CONTACTS_URL = "{{ url_for('ai_find_contacts', company_id=company.id) }}";
+
+// ── Pitch modal ──────────────────────────────────────────────────────────────
+
+function loadPitch() {
+  document.getElementById('pitchLoading').style.display = '';
+  document.getElementById('pitchContent').style.display = 'none';
+  document.getElementById('pitchError').style.display = 'none';
+
+  fetch(PITCH_URL, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) throw new Error(data.error);
+
+      const prog = data.program_info || {};
+      document.getElementById('pitchProgramName').textContent =
+        'Recommended Program: ' + (prog.name || data.suggested_program || '');
+      document.getElementById('pitchAmount').textContent =
+        'Suggested Ask: ' + (data.suggested_amount || '');
+      document.getElementById('pitchReasoning').textContent = data.reasoning || '';
+
+      const tipsList = document.getElementById('pitchTips');
+      tipsList.innerHTML = '';
+      (data.tips || []).forEach(t => {
+        const li = document.createElement('li');
+        li.textContent = t;
+        tipsList.appendChild(li);
+      });
+
+      document.getElementById('pitchSubject').textContent = data.subject || '';
+      const fullBody = [
+        data.salutation || '',
+        '',
+        data.body || '',
+        '',
+        data.signature || ''
+      ].join('\n');
+      document.getElementById('pitchEmailBody').value = fullBody;
+
+      document.getElementById('pitchLoading').style.display = 'none';
+      document.getElementById('pitchContent').style.display = '';
+    })
+    .catch(err => {
+      document.getElementById('pitchLoading').style.display = 'none';
+      const el = document.getElementById('pitchError');
+      el.textContent = 'Error: ' + err.message;
+      el.style.display = '';
+    });
+}
+
+document.getElementById('pitchModal').addEventListener('show.bs.modal', loadPitch);
+document.getElementById('regenPitchBtn').addEventListener('click', loadPitch);
+
+document.getElementById('copyEmailBtn').addEventListener('click', function () {
+  const subj = document.getElementById('pitchSubject').textContent;
+  const body = document.getElementById('pitchEmailBody').value;
+  navigator.clipboard.writeText('Subject: ' + subj + '\n\n' + body).then(() => {
+    this.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+    setTimeout(() => { this.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy'; }, 2000);
+  });
+});
+
+// ── Find Contacts modal ──────────────────────────────────────────────────────
+
+function loadContacts() {
+  document.getElementById('contactsLoading').style.display = '';
+  document.getElementById('contactsContent').style.display = 'none';
+  document.getElementById('contactsError').style.display = 'none';
+
+  fetch(CONTACTS_URL, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) throw new Error(data.error);
+
+      document.getElementById('contactGuess').textContent = data.contact_guess || '';
+
+      function fillList(elId, items, asCode) {
+        const el = document.getElementById(elId);
+        el.innerHTML = '';
+        (items || []).forEach(item => {
+          const li = document.createElement('li');
+          li.className = 'list-group-item small py-2';
+          if (asCode) {
+            const code = document.createElement('code');
+            code.className = 'user-select-all';
+            code.textContent = item;
+            li.appendChild(code);
+          } else {
+            li.textContent = item;
+          }
+          el.appendChild(li);
+        });
+      }
+
+      fillList('targetTitles', data.target_titles, false);
+      fillList('linkedinSearches', data.linkedin_searches, true);
+      fillList('websitePages', data.website_pages, true);
+      fillList('researchTips', data.research_tips, false);
+
+      document.getElementById('contactsLoading').style.display = 'none';
+      document.getElementById('contactsContent').style.display = '';
+    })
+    .catch(err => {
+      document.getElementById('contactsLoading').style.display = 'none';
+      const el = document.getElementById('contactsError');
+      el.textContent = 'Error: ' + err.message;
+      el.style.display = '';
+    });
+}
+
+document.getElementById('contactsModal').addEventListener('show.bs.modal', loadContacts);
+</script>
 {% endblock %}

@@ -20,9 +20,13 @@ import os
 import tempfile
 from datetime import date, datetime
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import (
     Flask,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -32,6 +36,12 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 
+from ai_features import (
+    PROGRAMS,
+    discover_new_companies,
+    generate_pitch_and_suggestions,
+    research_company_contacts,
+)
 from models import Company, Contact, OutreachLog, db
 from processors import (
     RE_FIELD_ALIASES,
@@ -707,6 +717,83 @@ def export_companies():
             "Content-Disposition": "attachment; filename=sponsorship_targets.csv"
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# AI Features
+# ---------------------------------------------------------------------------
+
+
+@app.route("/companies/<int:company_id>/ai/pitch", methods=["POST"])
+def ai_pitch(company_id):
+    """Generate a personalised sponsorship pitch email + program/amount suggestions."""
+    company = Company.query.get_or_404(company_id)
+    logs = (
+        OutreachLog.query.filter_by(company_id=company_id)
+        .order_by(OutreachLog.date.desc())
+        .limit(5)
+        .all()
+    )
+    result = generate_pitch_and_suggestions(company, company.contacts, logs)
+    return jsonify(result)
+
+
+@app.route("/companies/<int:company_id>/ai/find-contacts", methods=["POST"])
+def ai_find_contacts(company_id):
+    """Return structured guidance for finding the right contact at a company."""
+    company = Company.query.get_or_404(company_id)
+    result = research_company_contacts(company.name, company.website, company.industry)
+    return jsonify(result)
+
+
+@app.route("/discover")
+def discover():
+    return render_template("discover.html", programs=PROGRAMS)
+
+
+@app.route("/discover/search", methods=["POST"])
+def discover_search():
+    industry = request.json.get("industry", "")
+    location = request.json.get("location", "Los Angeles")
+    description = request.json.get("description", "")
+    result = discover_new_companies(industry, location, description)
+    return jsonify(result)
+
+
+@app.route("/discover/add", methods=["POST"])
+def discover_add():
+    """Add a discovered company to the database."""
+    name = request.json.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "Company name is required"}), 400
+
+    existing = Company.query.filter_by(name=name).first()
+    if existing:
+        return jsonify({
+            "exists": True,
+            "id": existing.id,
+            "url": url_for("company_detail", company_id=existing.id),
+        })
+
+    why = request.json.get("why_target", "")
+    note_parts = ["Added via AI prospect finder."]
+    if why:
+        note_parts.append(why)
+
+    company = Company(
+        name=name,
+        industry=request.json.get("industry", "").strip(),
+        target_priority="low",
+        outreach_status="new",
+        notes=" ".join(note_parts),
+    )
+    db.session.add(company)
+    db.session.commit()
+    return jsonify({
+        "success": True,
+        "id": company.id,
+        "url": url_for("company_detail", company_id=company.id),
+    })
 
 
 # ---------------------------------------------------------------------------

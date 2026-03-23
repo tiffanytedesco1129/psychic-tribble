@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block title %}Discover New Sponsors{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="fw-bold mb-0"><i class="bi bi-binoculars me-2 text-primary"></i>Discover New Sponsors</h2>
+    <p class="text-muted mb-0 mt-1">Use AI to find companies in Los Angeles that match Midnight Mission's mission — not yet in your database.</p>
+  </div>
+</div>
+
+<!-- Search form -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Industry <span class="text-muted fw-normal">(optional)</span></label>
+        <select class="form-select" id="industrySelect">
+          <option value="">All Industries</option>
+          <option value="Financial Services / Banking">Financial Services / Banking</option>
+          <option value="Technology">Technology</option>
+          <option value="Healthcare / Hospitals">Healthcare / Hospitals</option>
+          <option value="Real Estate / Construction">Real Estate / Construction</option>
+          <option value="Law Firms">Law Firms</option>
+          <option value="Entertainment / Media">Entertainment / Media</option>
+          <option value="Hospitality / Hotels">Hospitality / Hotels</option>
+          <option value="Retail / Consumer Brands">Retail / Consumer Brands</option>
+          <option value="Food & Beverage">Food &amp; Beverage</option>
+          <option value="Logistics / Transportation">Logistics / Transportation</option>
+          <option value="Insurance">Insurance</option>
+          <option value="Manufacturing">Manufacturing</option>
+          <option value="Professional Services / Consulting">Professional Services / Consulting</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Location</label>
+        <input type="text" class="form-control" id="locationInput" value="Los Angeles" placeholder="e.g. Los Angeles, Orange County">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Additional context <span class="text-muted fw-normal">(optional)</span></label>
+        <input type="text" class="form-control" id="descriptionInput"
+               placeholder="e.g. companies with employee volunteer programs">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-primary w-100" id="discoverBtn">
+          <i class="bi bi-stars me-1"></i>Find Companies
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading state -->
+<div id="discoverLoading" class="text-center py-5" style="display:none">
+  <div class="spinner-border text-primary mb-3" style="width:3rem;height:3rem" role="status"></div>
+  <p class="text-muted fs-5">Searching for new prospects…</p>
+  <p class="text-muted small">This usually takes 10–20 seconds</p>
+</div>
+
+<!-- Error state -->
+<div id="discoverError" class="alert alert-danger" style="display:none"></div>
+
+<!-- Results -->
+<div id="discoverResults" style="display:none">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-semibold mb-0">
+      <i class="bi bi-list-check me-1 text-success"></i>
+      <span id="resultsCount"></span> Suggested Prospects
+    </h5>
+    <span class="text-muted small">Click "Add to Database" to start tracking a company</span>
+  </div>
+  <div class="row g-3" id="resultsGrid"></div>
+</div>
+
+<!-- Program key -->
+<div class="card border-0 bg-light mt-4">
+  <div class="card-body py-2">
+    <p class="small fw-semibold mb-2"><i class="bi bi-bookmark me-1 text-primary"></i>Program Key</p>
+    <div class="row g-2">
+      {% for p in programs %}
+      <div class="col-sm-6 col-lg-4">
+        <div class="small">
+          <span class="badge bg-secondary me-1">{{ p.name }}</span>
+          <span class="text-muted">{{ p.typical_range }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const DISCOVER_URL = "{{ url_for('discover_search') }}";
+const ADD_URL = "{{ url_for('discover_add') }}";
+
+const PROGRAM_COLORS = {
+  'Annual Gala': 'danger',
+  'Women\'s Center Programs': 'pink',
+  'Family Housing & Services': 'success',
+  'Corporate Volunteer Day': 'primary',
+  'Employment & Skills Training': 'warning',
+  'Holiday Programs': 'info',
+};
+
+function programBadgeColor(name) {
+  for (const [key, color] of Object.entries(PROGRAM_COLORS)) {
+    if (name && name.toLowerCase().includes(key.toLowerCase().split(' ')[0])) return color;
+  }
+  return 'secondary';
+}
+
+document.getElementById('discoverBtn').addEventListener('click', function () {
+  const industry = document.getElementById('industrySelect').value;
+  const location = document.getElementById('locationInput').value || 'Los Angeles';
+  const description = document.getElementById('descriptionInput').value;
+
+  document.getElementById('discoverLoading').style.display = '';
+  document.getElementById('discoverResults').style.display = 'none';
+  document.getElementById('discoverError').style.display = 'none';
+  this.disabled = true;
+
+  fetch(DISCOVER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ industry, location, description }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('discoverLoading').style.display = 'none';
+      document.getElementById('discoverBtn').disabled = false;
+
+      if (data.error) throw new Error(data.error);
+
+      const companies = data.companies || [];
+      document.getElementById('resultsCount').textContent = companies.length;
+
+      const grid = document.getElementById('resultsGrid');
+      grid.innerHTML = '';
+
+      companies.forEach((c, idx) => {
+        const cardId = 'card-' + idx;
+        const color = programBadgeColor(c.program_fit);
+        const col = document.createElement('div');
+        col.className = 'col-md-6 col-xl-4';
+        col.innerHTML = `
+          <div class="card border-0 shadow-sm h-100" id="${cardId}">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="fw-bold mb-0">${escHtml(c.name)}</h6>
+                <span class="badge bg-${color} ms-2 flex-shrink-0">${escHtml(c.program_fit || '')}</span>
+              </div>
+              <div class="small text-muted mb-2">
+                ${escHtml(c.industry || '')}${c.headquarters ? ' · ' + escHtml(c.headquarters) : ''}
+              </div>
+              <p class="small mb-2">${escHtml(c.why_target || '')}</p>
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="small text-success fw-semibold">${escHtml(c.suggested_ask || '')}</span>
+              </div>
+              ${c.research_tip ? `<div class="small text-muted mt-2 border-top pt-2"><i class="bi bi-lightbulb me-1 text-warning"></i>${escHtml(c.research_tip)}</div>` : ''}
+            </div>
+            <div class="card-footer bg-white border-top-0 pt-0">
+              <button class="btn btn-outline-primary btn-sm w-100 add-btn"
+                      data-name="${escAttr(c.name)}"
+                      data-industry="${escAttr(c.industry || '')}"
+                      data-why="${escAttr(c.why_target || '')}"
+                      data-card="${cardId}">
+                <i class="bi bi-plus-circle me-1"></i>Add to Database
+              </button>
+            </div>
+          </div>`;
+        grid.appendChild(col);
+      });
+
+      // Attach add handlers
+      grid.querySelectorAll('.add-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+          const name = this.dataset.name;
+          const industry = this.dataset.industry;
+          const why = this.dataset.why;
+          const cardId = this.dataset.card;
+          this.disabled = true;
+          this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Adding…';
+
+          fetch(ADD_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, industry, why_target: why }),
+          })
+            .then(r => r.json())
+            .then(resp => {
+              const card = document.getElementById(cardId);
+              if (resp.error) {
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Add to Database';
+                alert('Error: ' + resp.error);
+              } else if (resp.exists) {
+                card.classList.add('border', 'border-warning');
+                this.className = 'btn btn-warning btn-sm w-100';
+                this.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i>Already in database';
+                this.onclick = () => window.open(resp.url, '_blank');
+                this.disabled = false;
+              } else {
+                card.classList.add('border', 'border-success');
+                this.className = 'btn btn-success btn-sm w-100';
+                this.innerHTML = '<i class="bi bi-check-circle me-1"></i>Added — View Company';
+                this.disabled = false;
+                this.onclick = () => window.open(resp.url, '_blank');
+              }
+            })
+            .catch(err => {
+              this.disabled = false;
+              this.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Add to Database';
+              alert('Error: ' + err.message);
+            });
+        });
+      });
+
+      document.getElementById('discoverResults').style.display = '';
+    })
+    .catch(err => {
+      document.getElementById('discoverLoading').style.display = 'none';
+      document.getElementById('discoverBtn').disabled = false;
+      const el = document.getElementById('discoverError');
+      el.textContent = 'Error: ' + err.message;
+      el.style.display = '';
+    });
+});
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+function escAttr(s) {
+  return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+</script>
+{% endblock %}
