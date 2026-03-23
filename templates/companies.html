@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Companies{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h2 class="fw-bold mb-0">Companies</h2>
+    <p class="text-muted mb-0">{{ companies | length }} result{% if companies|length != 1 %}s{% endif %}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('add_company') }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-plus-circle me-1"></i>Add Company
+    </a>
+    <a href="{{ url_for('export_companies',
+        priority=priority_filter, outreach_status=status_filter) }}"
+       class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-download me-1"></i>Export CSV
+    </a>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-sm-4 col-md-3">
+        <label class="form-label form-label-sm mb-1">Search</label>
+        <input class="form-control form-control-sm" name="search" placeholder="Company name…"
+               value="{{ search }}">
+      </div>
+      <div class="col-auto">
+        <label class="form-label form-label-sm mb-1">Priority</label>
+        <select class="form-select form-select-sm" name="priority">
+          <option value="">All</option>
+          <option value="high" {% if priority_filter=='high' %}selected{% endif %}>High</option>
+          <option value="medium" {% if priority_filter=='medium' %}selected{% endif %}>Medium</option>
+          <option value="low" {% if priority_filter=='low' %}selected{% endif %}>Low</option>
+          <option value="not_targeted" {% if priority_filter=='not_targeted' %}selected{% endif %}>Not Targeted</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label form-label-sm mb-1">RE Status</label>
+        <select class="form-select form-select-sm" name="re_status">
+          <option value="">All</option>
+          <option value="none" {% if re_filter=='none' %}selected{% endif %}>No RE record</option>
+          <option value="gik_only" {% if re_filter=='gik_only' %}selected{% endif %}>Gift in Kind only</option>
+          <option value="cash_donor" {% if re_filter=='cash_donor' %}selected{% endif %}>Cash donor</option>
+          <option value="sponsor" {% if re_filter=='sponsor' %}selected{% endif %}>Sponsor</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label form-label-sm mb-1">Volunteers?</label>
+        <select class="form-select form-select-sm" name="gc_status">
+          <option value="">All</option>
+          <option value="volunteer" {% if gc_filter=='volunteer' %}selected{% endif %}>Yes — volunteers</option>
+          <option value="none" {% if gc_filter=='none' %}selected{% endif %}>No volunteers</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label form-label-sm mb-1">Outreach</label>
+        <select class="form-select form-select-sm" name="outreach_status">
+          <option value="">All</option>
+          <option value="new" {% if status_filter=='new' %}selected{% endif %}>New</option>
+          <option value="researching" {% if status_filter=='researching' %}selected{% endif %}>Researching</option>
+          <option value="contacted" {% if status_filter=='contacted' %}selected{% endif %}>Contacted</option>
+          <option value="in_conversation" {% if status_filter=='in_conversation' %}selected{% endif %}>In Conversation</option>
+          <option value="committed" {% if status_filter=='committed' %}selected{% endif %}>Committed</option>
+          <option value="converted" {% if status_filter=='converted' %}selected{% endif %}>Converted</option>
+          <option value="declined" {% if status_filter=='declined' %}selected{% endif %}>Declined</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{{ url_for('companies') }}" class="btn btn-outline-secondary btn-sm ms-1">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Company table -->
+{% if companies %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Company</th>
+          <th>Priority</th>
+          <th>Relationship</th>
+          <th>Why Target</th>
+          <th>Contacts</th>
+          <th>Outreach</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in companies %}
+        <tr>
+          <td>
+            <a href="{{ url_for('company_detail', company_id=c.id) }}" class="fw-semibold text-decoration-none">
+              {{ c.name }}
+            </a>
+            {% if c.industry %}
+              <div class="small text-muted">{{ c.industry }}</div>
+            {% endif %}
+            {% if c.city %}
+              <div class="small text-muted"><i class="bi bi-geo-alt"></i> {{ c.city }}{% if c.state %}, {{ c.state }}{% endif %}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if c.target_priority == 'high' %}
+              <span class="badge bg-danger">High</span>
+            {% elif c.target_priority == 'medium' %}
+              <span class="badge bg-warning text-dark">Medium</span>
+            {% elif c.target_priority == 'low' %}
+              <span class="badge bg-secondary">Low</span>
+            {% else %}
+              <span class="badge bg-success">N/A</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="small">{{ c.relationship_summary }}</span>
+          </td>
+          <td class="small text-muted" style="max-width:220px">
+            {{ c.why_target }}
+          </td>
+          <td class="text-center">
+            {% if c.contacts %}
+              <span class="badge bg-light text-dark border">{{ c.contacts | length }}</span>
+            {% else %}
+              <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% set status_map = {
+              'new': ('secondary', 'New'),
+              'researching': ('info text-dark', 'Researching'),
+              'contacted': ('primary', 'Contacted'),
+              'in_conversation': ('warning text-dark', 'In Convo'),
+              'committed': ('success', 'Committed'),
+              'converted': ('success', 'Converted'),
+              'declined': ('danger', 'Declined'),
+            } %}
+            {% set badge = status_map.get(c.outreach_status, ('secondary', c.outreach_status)) %}
+            <span class="badge bg-{{ badge[0] }}">{{ badge[1] }}</span>
+          </td>
+          <td>
+            <a href="{{ url_for('company_detail', company_id=c.id) }}"
+               class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-arrow-right"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-building display-3 d-block mb-2"></i>
+    No companies match your filters.
+    {% if not (search or priority_filter or re_filter or gc_filter or status_filter) %}
+      <br><a href="{{ url_for('upload') }}">Upload data</a> or
+      <a href="{{ url_for('add_company') }}">add a company manually</a>.
+    {% else %}
+      <br><a href="{{ url_for('companies') }}">Clear filters</a>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

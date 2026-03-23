@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Upload Data{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h2 class="fw-bold mb-1">Upload Donor / Volunteer Data</h2>
+    <p class="text-muted mb-4">Import a CSV or Excel export from Raiser's Edge or Get Connected.
+       The app will categorize companies and flag new sponsorship targets automatically.</p>
+
+    <!-- Cards for each source -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <div class="card border-primary h-100">
+          <div class="card-body">
+            <h5 class="card-title"><i class="bi bi-database me-2 text-primary"></i>Raiser's Edge</h5>
+            <p class="card-text text-muted small">
+              Export a <strong>Gift report or Organization constituent list</strong> that includes
+              gift type (Cash / Gift in Kind), company name, and optionally contact info and address.
+            </p>
+            <p class="small mb-2"><strong>Typical columns in a RE export:</strong></p>
+            <ul class="small text-muted mb-0">
+              <li>Organization Name / Company</li>
+              <li>Gift Type (critical — detects Gift in Kind)</li>
+              <li>Gift Amount, Gift Date</li>
+              <li>Contact Name, Title, Email, Phone</li>
+              <li>Address Line 1, City, State, ZIP</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card border-success h-100">
+          <div class="card-body">
+            <h5 class="card-title"><i class="bi bi-people me-2 text-success"></i>Get Connected</h5>
+            <p class="card-text text-muted small">
+              Export a <strong>Volunteer or Sign-up report</strong> that includes the volunteer's
+              employer/organization. The app uses this to find companies already connected through
+              their employees but never asked for cash sponsorship.
+            </p>
+            <p class="small mb-2"><strong>Typical columns in a GC export:</strong></p>
+            <ul class="small text-muted mb-0">
+              <li>Organization / Company / Employer</li>
+              <li>First Name, Last Name (or Full Name)</li>
+              <li>Email, Phone</li>
+              <li>Opportunity / Event Name</li>
+              <li>Shift Date, Hours</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload form -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold border-bottom">
+        <i class="bi bi-upload me-1 text-primary"></i>Select File to Upload
+      </div>
+      <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Data source</label>
+            <div class="d-flex gap-4">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="file_type" id="srcRE" value="re" checked>
+                <label class="form-check-label" for="srcRE">
+                  <i class="bi bi-database text-primary me-1"></i> Raiser's Edge
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="file_type" id="srcGC" value="gc">
+                <label class="form-check-label" for="srcGC">
+                  <i class="bi bi-people text-success me-1"></i> Get Connected
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="fileInput">CSV or Excel file</label>
+            <input class="form-control" type="file" id="fileInput" name="file"
+                   accept=".csv,.xlsx,.xls,.tsv" required>
+            <div class="form-text">
+              Accepted formats: .csv, .xlsx, .xls — max 16 MB.<br>
+              On the next screen you will match column names to the fields we need.
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-arrow-right-circle me-1"></i>Continue — Map Columns
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- How priority works -->
+    <div class="card border-0 shadow-sm mt-4">
+      <div class="card-header bg-white fw-semibold border-bottom">
+        <i class="bi bi-info-circle me-1 text-info"></i>How Target Priority Is Assigned
+      </div>
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Priority</th>
+              <th>Relationship History</th>
+              <th>Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge bg-danger">High</span></td>
+              <td>Employees volunteer, but company never donated cash</td>
+              <td>Warm relationship — they care about the mission. Never been asked.</td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-danger">High</span></td>
+              <td>Gift in Kind <em>and</em> employees volunteer</td>
+              <td>Deeply engaged — ready to step up to a cash sponsorship.</td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-warning text-dark">Medium</span></td>
+              <td>Gift in Kind only</td>
+              <td>Already giving — opportunity to convert to event sponsorship.</td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-secondary">Low</span></td>
+              <td>No prior relationship</td>
+              <td>Cold outreach — new prospect in Downtown LA.</td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-success">Not targeted</span></td>
+              <td>Cash donor or current sponsor</td>
+              <td>Already a sponsor — focus on renewal, not acquisition.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

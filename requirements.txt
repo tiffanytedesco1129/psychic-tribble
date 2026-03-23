@@ -1,3 +1,10 @@
 msal==1.31.0
 requests==2.32.3
 python-dotenv==1.0.1
+
+# Sponsorship Identifier app
+flask>=3.0.0
+flask-sqlalchemy>=3.1.0
+pandas>=2.0.0
+openpyxl>=3.1.0
+werkzeug>=3.0.0

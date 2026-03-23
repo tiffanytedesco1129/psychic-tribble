@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <h2 class="fw-bold mb-4">Edit Company</h2>
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <form method="POST">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Company Name <span class="text-danger">*</span></label>
+              <input class="form-control" name="name" value="{{ company.name }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Industry / Sector</label>
+              <input class="form-control" name="industry" value="{{ company.industry or '' }}"
+                     placeholder="e.g. Finance, Entertainment, Legal">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Phone</label>
+              <input class="form-control" name="phone" value="{{ company.phone or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Street Address</label>
+              <input class="form-control" name="address" value="{{ company.address or '' }}">
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">City</label>
+              <input class="form-control" name="city" value="{{ company.city or '' }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">State</label>
+              <input class="form-control" name="state" value="{{ company.state or '' }}" maxlength="2">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">ZIP</label>
+              <input class="form-control" name="zip_code" value="{{ company.zip_code or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Website</label>
+              <input class="form-control" name="website" value="{{ company.website or '' }}"
+                     placeholder="https://...">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Raiser's Edge Status</label>
+              <select class="form-select" name="re_status">
+                <option value="none" {% if company.re_status=='none' %}selected{% endif %}>Not in RE</option>
+                <option value="gik_only" {% if company.re_status=='gik_only' %}selected{% endif %}>Gift in Kind only</option>
+                <option value="cash_donor" {% if company.re_status=='cash_donor' %}selected{% endif %}>Cash donor</option>
+                <option value="sponsor" {% if company.re_status=='sponsor' %}selected{% endif %}>Sponsor</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Volunteers (Get Connected)</label>
+              <select class="form-select" name="gc_status">
+                <option value="none" {% if company.gc_status=='none' %}selected{% endif %}>No volunteers on record</option>
+                <option value="volunteer" {% if company.gc_status=='volunteer' %}selected{% endif %}>Yes — employees volunteer</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Outreach Status</label>
+              <select class="form-select" name="outreach_status">
+                {% for val, label in [('new','New'),('researching','Researching'),
+                  ('contacted','Contacted'),('in_conversation','In Conversation'),
+                  ('committed','Committed'),('converted','Converted'),('declined','Declined')] %}
+                  <option value="{{ val }}" {% if company.outreach_status==val %}selected{% endif %}>
+                    {{ label }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Override Priority</label>
+              <select class="form-select" name="target_priority_override">
+                <option value="">(auto-calculate)</option>
+                <option value="high" {% if company.target_priority=='high' %}selected{% endif %}>High</option>
+                <option value="medium" {% if company.target_priority=='medium' %}selected{% endif %}>Medium</option>
+                <option value="low" {% if company.target_priority=='low' %}selected{% endif %}>Low</option>
+                <option value="not_targeted" {% if company.target_priority=='not_targeted' %}selected{% endif %}>Not Targeted</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Notes</label>
+              <textarea class="form-control" name="notes" rows="3">{{ company.notes or '' }}</textarea>
+            </div>
+          </div>
+
+          <hr class="my-3">
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="{{ url_for('company_detail', company_id=company.id) }}"
+               class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

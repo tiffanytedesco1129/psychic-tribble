@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Add Company{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <h2 class="fw-bold mb-1">Add Company Manually</h2>
+    <p class="text-muted mb-4">Use this to add a prospect you've identified through research that
+    isn't in Raiser's Edge or Get Connected yet.</p>
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <form method="POST">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold">Company Name <span class="text-danger">*</span></label>
+              <input class="form-control" name="name" required autofocus>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Industry / Sector</label>
+              <input class="form-control" name="industry"
+                     placeholder="e.g. Finance, Entertainment, Legal, Healthcare">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Phone</label>
+              <input class="form-control" name="phone">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Street Address</label>
+              <input class="form-control" name="address">
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">City</label>
+              <input class="form-control" name="city" value="Los Angeles">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">State</label>
+              <input class="form-control" name="state" value="CA" maxlength="2">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">ZIP</label>
+              <input class="form-control" name="zip_code">
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Website</label>
+              <input class="form-control" name="website" placeholder="https://...">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Raiser's Edge History</label>
+              <select class="form-select" name="re_status">
+                <option value="none">Not in RE</option>
+                <option value="gik_only">Gift in Kind only</option>
+                <option value="cash_donor">Cash donor</option>
+                <option value="sponsor">Sponsor</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Volunteer History (GC)</label>
+              <select class="form-select" name="gc_status">
+                <option value="none">No volunteers on record</option>
+                <option value="volunteer">Yes — employees volunteer</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold">Notes</label>
+              <textarea class="form-control" name="notes" rows="2"
+                        placeholder="How did you find this company? Any inside connections?"></textarea>
+            </div>
+          </div>
+          <hr class="my-3">
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Add Company</button>
+            <a href="{{ url_for('companies') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
