@@ -27,6 +27,7 @@ Usage
 import base64
 import json
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -143,24 +144,36 @@ def _extract_from_image(
     page_num: int,
 ) -> list[CheckData]:
     """Send one page image to Claude Vision and return all checks found on the page."""
-    response = client.messages.create(
-        model="claude-opus-4-6",
-        max_tokens=2048,
-        messages=[{
-            "role": "user",
-            "content": [
-                {
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": "image/png",
-                        "data": image_b64,
-                    },
-                },
-                {"type": "text", "text": _EXTRACTION_PROMPT},
-            ],
-        }],
-    )
+    last_error = None
+    for attempt in range(4):
+        if attempt > 0:
+            wait = 2 ** attempt  # 2s, 4s, 8s
+            print(f"    [retry] API error on page {page_num}, retrying in {wait}s (attempt {attempt + 1}/4)...")
+            time.sleep(wait)
+        try:
+            response = client.messages.create(
+                model="claude-opus-4-6",
+                max_tokens=2048,
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/png",
+                                "data": image_b64,
+                            },
+                        },
+                        {"type": "text", "text": _EXTRACTION_PROMPT},
+                    ],
+                }],
+            )
+            break
+        except anthropic.InternalServerError as e:
+            last_error = e
+    else:
+        raise last_error
 
     raw = next((b.text for b in response.content if b.type == "text"), "[]")
     items = _parse_json_response(raw)
