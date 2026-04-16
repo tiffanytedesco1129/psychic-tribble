@@ -6,10 +6,6 @@ __pycache__/
 venv/
 env/
 
-# Secrets and cached credentials — never commit these
-.env
-.token_cache.bin
-
 # Exported output files
 contacts.csv
 contacts.vcf

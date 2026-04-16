@@ -1,11 +1,4 @@
-"""
-Extract and deduplicate contacts from Graph API message objects.
-
-A contact is keyed by lowercase email address. When the same address
-appears with different display names, the first non-empty name wins.
-"""
-
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Iterable
 
 
@@ -16,18 +9,12 @@ class Contact:
 
 
 def _extract_address(email_address_obj: dict) -> tuple[str, str]:
-    """Return (address, name) from a Graph API emailAddress object."""
     address = (email_address_obj.get("address") or "").strip().lower()
     name = (email_address_obj.get("name") or "").strip()
     return address, name
 
 
 def extract_contacts(messages: Iterable[dict]) -> list[Contact]:
-    """
-    Walk every message and collect unique contacts from all recipient fields.
-    Returns a list of Contact objects sorted by email address.
-    """
-    # Map: lowercase email -> Contact
     seen: dict[str, Contact] = {}
 
     def _add(email_address_obj: dict) -> None:
@@ -37,7 +24,6 @@ def extract_contacts(messages: Iterable[dict]) -> list[Contact]:
         if address not in seen:
             seen[address] = Contact(email=address, name=name)
         elif not seen[address].name and name:
-            # Fill in a name we didn't have before.
             seen[address].name = name
 
     for msg in messages:
